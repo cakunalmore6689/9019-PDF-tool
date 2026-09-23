@@ -4,7 +4,7 @@
   "short_name": "PDF Tool",
   "description": "Merge, split, and compress PDFs privately on your device.",
   "lang": "en",
-  "start_url": "./9019%20PDF%20tool1.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone"],

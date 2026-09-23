@@ -1,0 +1,1369 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>9019 PDF Tool - Merge, Split, Compress PDFs</title>
+    <meta name="theme-color" content="#667eea">
+    <meta name="description" content="A private, offline-capable PDF merge, split, and compression tool.">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" href="./icons/pdf-tool-icon-192.png" type="image/png" sizes="192x192">
+    <link rel="apple-touch-icon" href="./icons/pdf-tool-icon-180.png" sizes="180x180">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PDF Tool">
+    
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            animation: fadeInDown 0.6s ease;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        .privacy-notice {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 0.95em;
+            animation: fadeIn 0.8s ease;
+        }
+
+        .privacy-notice::before {
+            content: "🔒 ";
+        }
+
+        .install-button {
+            margin-top: 14px;
+            padding: 9px 16px;
+            border: 1px solid rgba(255,255,255,0.7);
+            border-radius: 999px;
+            background: rgba(255,255,255,0.18);
+            color: white;
+            cursor: pointer;
+            font: inherit;
+            font-weight: 600;
+        }
+
+        .install-button:hover { background: rgba(255,255,255,0.3); }
+
+        .tabs {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tab-button {
+            flex: 1;
+            min-width: 200px;
+            padding: 15px 25px;
+            background: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .tab-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .tab-button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            animation: fadeIn 0.4s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .upload-zone {
+            border: 3px dashed #667eea;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9ff;
+            margin-bottom: 25px;
+        }
+
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: #764ba2;
+            background: #f0f1ff;
+            transform: scale(1.02);
+        }
+
+        .upload-zone input[type="file"] {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .file-list {
+            margin: 20px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+            transition: all 0.3s ease;
+        }
+
+        .file-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .file-item.dragging {
+            opacity: 0.5;
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .file-details {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.9em;
+        }
+
+        .controls {
+            margin: 25px 0;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .input-group {
+            margin: 20px 0;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 15px 0;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .radio-option:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .radio-option input[type="radio"] {
+            margin-right: 10px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .radio-option label {
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .progress-container {
+            display: none;
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        .notification {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        .notification.show {
+            display: block;
+        }
+
+        .notification.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .notification.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .notification.warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+
+        .compression-info {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            display: none;
+        }
+
+        .compression-info.show {
+            display: block;
+        }
+
+        .size-comparison {
+            display: flex;
+            justify-content: space-around;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .size-box {
+            flex: 1;
+            padding: 15px;
+        }
+
+        .size-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .size-value {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .savings {
+            background: #28a745;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-100%);
+            }
+            to {
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2em;
+            }
+
+            .tab-button {
+                min-width: 150px;
+                font-size: 1em;
+            }
+
+            .tab-content {
+                padding: 20px;
+            }
+
+            .file-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .file-actions {
+                margin-top: 10px;
+                width: 100%;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .split-options {
+            margin-top: 15px;
+        }
+
+        .option-detail {
+            margin-left: 30px;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>9019 PDF Tool</h1>
+            <p>Merge • Split • Compress PDFs Securely</p>
+            <button id="installAppBtn" class="install-button hidden" type="button">Install PDF Tool</button>
+        </header>
+
+        <div class="privacy-notice">
+            Your PDFs stay on your device. No files are uploaded.
+        </div>
+
+        <div class="tabs">
+            <button class="tab-button active" data-tab="merge">📄 Merge PDF</button>
+            <button class="tab-button" data-tab="split">✂️ Split PDF</button>
+            <button class="tab-button" data-tab="compress">🗜️ Compress PDF</button>
+        </div>
+
+        <!-- Merge Tab -->
+        <div class="tab-content active" id="merge">
+            <h2 style="margin-bottom: 20px;">Merge Multiple PDFs</h2>
+            
+            <div class="upload-zone" id="mergeUploadZone">
+                <div class="upload-icon">📁</div>
+                <p style="font-size: 1.1em; margin-bottom: 10px;">Click or drag PDFs here to upload</p>
+                <p style="color: #666; font-size: 0.9em;">You can upload multiple files at once</p>
+                <input type="file" id="mergeFileInput" accept=".pdf" multiple>
+            </div>
+
+            <div id="mergeNotification" class="notification"></div>
+
+            <div class="file-list" id="mergeFileList"></div>
+
+            <div class="progress-container" id="mergeProgress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="mergeProgressFill">0%</div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-primary" id="mergePdfBtn" disabled>🔗 Merge PDFs</button>
+                <button class="btn btn-success hidden" id="downloadMergedBtn">⬇️ Download Merged PDF</button>
+                <button class="btn btn-secondary" id="clearMergeBtn">🗑️ Clear All</button>
+            </div>
+        </div>
+
+        <!-- Split Tab -->
+        <div class="tab-content" id="split">
+            <h2 style="margin-bottom: 20px;">Split PDF</h2>
+            
+            <div class="upload-zone" id="splitUploadZone">
+                <div class="upload-icon">📄</div>
+                <p style="font-size: 1.1em; margin-bottom: 10px;">Click or drag a PDF here to upload</p>
+                <p style="color: #666; font-size: 0.9em;">Upload one PDF file to split</p>
+                <input type="file" id="splitFileInput" accept=".pdf">
+            </div>
+
+            <div id="splitNotification" class="notification"></div>
+
+            <div id="splitFileInfo" class="hidden">
+                <div class="file-item">
+                    <div class="file-info">
+                        <div class="file-name" id="splitFileName"></div>
+                        <div class="file-details" id="splitFileDetails"></div>
+                    </div>
+                </div>
+
+                <div class="split-options">
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" id="extractPages" name="splitMode" value="extract" checked>
+                            <label for="extractPages">
+                                <strong>Extract Specific Pages</strong>
+                                <div class="option-detail">
+                                    <input type="text" id="pageRange" placeholder="e.g., 1-3,5,8-10" style="margin-top: 8px;">
+                                    <small style="color: #666; display: block; margin-top: 5px;">Enter page numbers or ranges separated by commas</small>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="radio-option">
+                            <input type="radio" id="splitEveryPage" name="splitMode" value="everyPage">
+                            <label for="splitEveryPage">
+                                <strong>Split Every Page</strong>
+                                <div style="font-size: 0.9em; color: #666; margin-top: 5px;">Each page becomes a separate PDF</div>
+                            </label>
+                        </div>
+
+                        <div class="radio-option">
+                            <input type="radio" id="splitEveryN" name="splitMode" value="everyN">
+                            <label for="splitEveryN">
+                                <strong>Split After Every N Pages</strong>
+                                <div class="option-detail">
+                                    <input type="number" id="pageInterval" min="1" placeholder="Number of pages per file" style="margin-top: 8px;">
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="progress-container" id="splitProgress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="splitProgressFill">0%</div>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-primary" id="splitPdfBtn">✂️ Split PDF</button>
+                    <button class="btn btn-success hidden" id="downloadSplitBtn">⬇️ Download</button>
+                    <button class="btn btn-secondary" id="clearSplitBtn">🗑️ Clear</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compress Tab -->
+        <div class="tab-content" id="compress">
+            <h2 style="margin-bottom: 20px;">Compress PDF</h2>
+            
+            <div class="upload-zone" id="compressUploadZone">
+                <div class="upload-icon">📄</div>
+                <p style="font-size: 1.1em; margin-bottom: 10px;">Click or drag a PDF here to upload</p>
+                <p style="color: #666; font-size: 0.9em;">Upload one PDF file to compress</p>
+                <input type="file" id="compressFileInput" accept=".pdf">
+            </div>
+
+            <div id="compressNotification" class="notification"></div>
+
+            <div id="compressFileInfo" class="hidden">
+                <div class="file-item">
+                    <div class="file-info">
+                        <div class="file-name" id="compressFileName"></div>
+                        <div class="file-details" id="compressFileDetails"></div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Compression Level</label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" id="compressLow" name="compressMode" value="low" checked>
+                            <label for="compressLow">
+                                <strong>Low Compression</strong>
+                                <div style="font-size: 0.9em; color: #666; margin-top: 5px;">High quality, minor size reduction (~10-20%)</div>
+                            </label>
+                        </div>
+
+                        <div class="radio-option">
+                            <input type="radio" id="compressMedium" name="compressMode" value="medium">
+                            <label for="compressMedium">
+                                <strong>Medium Compression</strong>
+                                <div style="font-size: 0.9em; color: #666; margin-top: 5px;">Balanced quality and size (~30-50%)</div>
+                            </label>
+                        </div>
+
+                        <div class="radio-option">
+                            <input type="radio" id="compressHigh" name="compressMode" value="high">
+                            <label for="compressHigh">
+                                <strong>High Compression</strong>
+                                <div style="font-size: 0.9em; color: #666; margin-top: 5px;">Maximum size reduction, lower quality (~50-70%)</div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="notification warning" style="display: block;">
+                    <strong>Note:</strong> Higher compression may reduce image quality and convert text to images, making it non-searchable.
+                </div>
+
+                <div class="progress-container" id="compressProgress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="compressProgressFill">0%</div>
+                    </div>
+                </div>
+
+                <div class="compression-info" id="compressionResults">
+                    <h3 style="margin-bottom: 15px;">Compression Results</h3>
+                    <div class="size-comparison">
+                        <div class="size-box">
+                            <div class="size-label">Original Size</div>
+                            <div class="size-value" id="originalSize">-</div>
+                        </div>
+                        <div class="size-box">
+                            <div class="size-label">Compressed Size</div>
+                            <div class="size-value" id="compressedSize">-</div>
+                        </div>
+                    </div>
+                    <div style="text-align: center;">
+                        <span class="savings" id="savingsPercent">0% reduction</span>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-primary" id="compressPdfBtn">🗜️ Compress PDF</button>
+                    <button class="btn btn-success hidden" id="downloadCompressedBtn">⬇️ Download Compressed PDF</button>
+                    <button class="btn btn-secondary" id="clearCompressBtn">🗑️ Clear</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configure PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // Utility Functions
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function showNotification(elementId, message, type) {
+            const notification = document.getElementById(elementId);
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 5000);
+        }
+
+        function updateProgress(elementId, percent) {
+            const progressFill = document.getElementById(elementId);
+            progressFill.style.width = percent + '%';
+            progressFill.textContent = Math.round(percent) + '%';
+        }
+
+        function showProgress(containerId) {
+            document.getElementById(containerId).style.display = 'block';
+        }
+
+        function hideProgress(containerId) {
+            document.getElementById(containerId).style.display = 'none';
+        }
+
+        // Tab Switching
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const tabName = button.dataset.tab;
+                
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                
+                button.classList.add('active');
+                document.getElementById(tabName).classList.add('active');
+            });
+        });
+
+        // ===== MERGE PDF FUNCTIONALITY =====
+        let mergeFiles = [];
+        let mergedPdfBytes = null;
+
+        const mergeUploadZone = document.getElementById('mergeUploadZone');
+        const mergeFileInput = document.getElementById('mergeFileInput');
+        const mergeFileList = document.getElementById('mergeFileList');
+        const mergePdfBtn = document.getElementById('mergePdfBtn');
+        const downloadMergedBtn = document.getElementById('downloadMergedBtn');
+        const clearMergeBtn = document.getElementById('clearMergeBtn');
+
+        mergeUploadZone.addEventListener('click', () => mergeFileInput.click());
+
+        mergeUploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            mergeUploadZone.classList.add('dragover');
+        });
+
+        mergeUploadZone.addEventListener('dragleave', () => {
+            mergeUploadZone.classList.remove('dragover');
+        });
+
+        mergeUploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            mergeUploadZone.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf');
+            handleMergeFiles(files);
+        });
+
+        mergeFileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            handleMergeFiles(files);
+            mergeFileInput.value = '';
+        });
+
+        async function handleMergeFiles(files) {
+            for (const file of files) {
+                try {
+                    // Clone the arrayBuffer to prevent detachment
+                    const arrayBuffer = await file.arrayBuffer();
+                    const clonedBuffer = arrayBuffer.slice(0);
+                    
+                    const pdf = await pdfjsLib.getDocument({data: clonedBuffer}).promise;
+                    
+                    // Store another copy for pdf-lib
+                    const arrayBuffer2 = await file.arrayBuffer();
+                    
+                    mergeFiles.push({
+                        file: file,
+                        name: file.name,
+                        size: file.size,
+                        pages: pdf.numPages,
+                        arrayBuffer: arrayBuffer2
+                    });
+                } catch (error) {
+                    showNotification('mergeNotification', `Error loading ${file.name}: ${error.message}`, 'error');
+                }
+            }
+            
+            renderMergeFileList();
+            mergePdfBtn.disabled = mergeFiles.length < 2;
+        }
+
+        function renderMergeFileList() {
+            mergeFileList.innerHTML = '';
+            
+            mergeFiles.forEach((fileData, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.draggable = true;
+                fileItem.dataset.index = index;
+                
+                fileItem.innerHTML = `
+                    <div class="file-info">
+                        <div class="file-name">📄 ${fileData.name}</div>
+                        <div class="file-details">${fileData.pages} pages • ${formatFileSize(fileData.size)}</div>
+                    </div>
+                    <div class="file-actions">
+                        <button class="btn btn-danger btn-small" onclick="removeMergeFile(${index})">✕ Remove</button>
+                    </div>
+                `;
+                
+                // Drag and drop for reordering
+                fileItem.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', index);
+                    fileItem.classList.add('dragging');
+                });
+                
+                fileItem.addEventListener('dragend', () => {
+                    fileItem.classList.remove('dragging');
+                });
+                
+                fileItem.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                });
+                
+                fileItem.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                    const targetIndex = index;
+                    
+                    if (draggedIndex !== targetIndex) {
+                        const draggedItem = mergeFiles[draggedIndex];
+                        mergeFiles.splice(draggedIndex, 1);
+                        mergeFiles.splice(targetIndex, 0, draggedItem);
+                        renderMergeFileList();
+                    }
+                });
+                
+                mergeFileList.appendChild(fileItem);
+            });
+        }
+
+        window.removeMergeFile = function(index) {
+            mergeFiles.splice(index, 1);
+            renderMergeFileList();
+            mergePdfBtn.disabled = mergeFiles.length < 2;
+            downloadMergedBtn.classList.add('hidden');
+            mergedPdfBytes = null;
+        };
+
+        mergePdfBtn.addEventListener('click', async () => {
+            if (mergeFiles.length < 2) {
+                showNotification('mergeNotification', 'Please upload at least 2 PDF files', 'error');
+                return;
+            }
+
+            mergePdfBtn.disabled = true;
+            showProgress('mergeProgress');
+            updateProgress('mergeProgressFill', 0);
+
+            try {
+                const mergedPdf = await PDFLib.PDFDocument.create();
+                
+                for (let i = 0; i < mergeFiles.length; i++) {
+                    const fileData = mergeFiles[i];
+                    const pdf = await PDFLib.PDFDocument.load(fileData.arrayBuffer);
+                    const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+                    copiedPages.forEach(page => mergedPdf.addPage(page));
+                    
+                    updateProgress('mergeProgressFill', ((i + 1) / mergeFiles.length) * 100);
+                }
+                
+                mergedPdfBytes = await mergedPdf.save();
+                
+                hideProgress('mergeProgress');
+                downloadMergedBtn.classList.remove('hidden');
+                showNotification('mergeNotification', 'PDFs merged successfully!', 'success');
+            } catch (error) {
+                hideProgress('mergeProgress');
+                showNotification('mergeNotification', 'Error merging PDFs: ' + error.message, 'error');
+            } finally {
+                mergePdfBtn.disabled = false;
+            }
+        });
+
+        downloadMergedBtn.addEventListener('click', () => {
+            if (mergedPdfBytes) {
+                const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'merged-document.pdf';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        });
+
+        clearMergeBtn.addEventListener('click', () => {
+            mergeFiles = [];
+            mergedPdfBytes = null;
+            renderMergeFileList();
+            mergePdfBtn.disabled = true;
+            downloadMergedBtn.classList.add('hidden');
+            hideProgress('mergeProgress');
+        });
+
+        // ===== SPLIT PDF FUNCTIONALITY =====
+        let splitFile = null;
+        let splitPdfDoc = null;
+        let splitResults = null;
+
+        const splitUploadZone = document.getElementById('splitUploadZone');
+        const splitFileInput = document.getElementById('splitFileInput');
+        const splitFileInfo = document.getElementById('splitFileInfo');
+        const splitFileName = document.getElementById('splitFileName');
+        const splitFileDetails = document.getElementById('splitFileDetails');
+        const splitPdfBtn = document.getElementById('splitPdfBtn');
+        const downloadSplitBtn = document.getElementById('downloadSplitBtn');
+        const clearSplitBtn = document.getElementById('clearSplitBtn');
+
+        splitUploadZone.addEventListener('click', () => splitFileInput.click());
+
+        splitUploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            splitUploadZone.classList.add('dragover');
+        });
+
+        splitUploadZone.addEventListener('dragleave', () => {
+            splitUploadZone.classList.remove('dragover');
+        });
+
+        splitUploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            splitUploadZone.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf');
+            if (files.length > 0) handleSplitFile(files[0]);
+        });
+
+        splitFileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleSplitFile(e.target.files[0]);
+                splitFileInput.value = '';
+            }
+        });
+
+        async function handleSplitFile(file) {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const clonedBuffer = arrayBuffer.slice(0);
+                const pdf = await pdfjsLib.getDocument({data: clonedBuffer}).promise;
+                
+                const arrayBuffer2 = await file.arrayBuffer();
+                splitPdfDoc = await PDFLib.PDFDocument.load(arrayBuffer2);
+                
+                splitFile = {
+                    file: file,
+                    name: file.name,
+                    size: file.size,
+                    pages: pdf.numPages
+                };
+                
+                splitFileName.textContent = `📄 ${file.name}`;
+                splitFileDetails.textContent = `${splitFile.pages} pages • ${formatFileSize(file.size)}`;
+                splitFileInfo.classList.remove('hidden');
+                downloadSplitBtn.classList.add('hidden');
+                splitResults = null;
+            } catch (error) {
+                showNotification('splitNotification', 'Error loading PDF: ' + error.message, 'error');
+            }
+        }
+
+        function parsePageRange(rangeStr, totalPages) {
+            const pages = new Set();
+            const parts = rangeStr.split(',');
+            
+            for (const part of parts) {
+                const trimmed = part.trim();
+                if (trimmed.includes('-')) {
+                    const [start, end] = trimmed.split('-').map(s => parseInt(s.trim()));
+                    if (isNaN(start) || isNaN(end) || start < 1 || end > totalPages || start > end) {
+                        throw new Error(`Invalid range: ${trimmed}`);
+                    }
+                    for (let i = start; i <= end; i++) {
+                        pages.add(i - 1);
+                    }
+                } else {
+                    const pageNum = parseInt(trimmed);
+                    if (isNaN(pageNum) || pageNum < 1 || pageNum > totalPages) {
+                        throw new Error(`Invalid page number: ${trimmed}`);
+                    }
+                    pages.add(pageNum - 1);
+                }
+            }
+            
+            return Array.from(pages).sort((a, b) => a - b);
+        }
+
+        splitPdfBtn.addEventListener('click', async () => {
+            if (!splitFile) {
+                showNotification('splitNotification', 'Please upload a PDF file first', 'error');
+                return;
+            }
+
+            const mode = document.querySelector('input[name="splitMode"]:checked').value;
+            
+            splitPdfBtn.disabled = true;
+            showProgress('splitProgress');
+            updateProgress('splitProgressFill', 0);
+
+            try {
+                if (mode === 'extract') {
+                    const pageRange = document.getElementById('pageRange').value.trim();
+                    if (!pageRange) {
+                        throw new Error('Please enter page numbers or ranges');
+                    }
+                    
+                    const pageIndices = parsePageRange(pageRange, splitFile.pages);
+                    const newPdf = await PDFLib.PDFDocument.create();
+                    const copiedPages = await newPdf.copyPages(splitPdfDoc, pageIndices);
+                    copiedPages.forEach(page => newPdf.addPage(page));
+                    
+                    const pdfBytes = await newPdf.save();
+                    splitResults = { type: 'single', data: pdfBytes, name: 'extracted-pages.pdf' };
+                    
+                    updateProgress('splitProgressFill', 100);
+                    showNotification('splitNotification', `Extracted ${pageIndices.length} pages successfully!`, 'success');
+                    
+                } else if (mode === 'everyPage') {
+                    const zip = new JSZip();
+                    const totalPages = splitPdfDoc.getPageCount();
+                    
+                    for (let i = 0; i < totalPages; i++) {
+                        const newPdf = await PDFLib.PDFDocument.create();
+                        const [copiedPage] = await newPdf.copyPages(splitPdfDoc, [i]);
+                        newPdf.addPage(copiedPage);
+                        const pdfBytes = await newPdf.save();
+                        
+                        zip.file(`page-${i + 1}.pdf`, pdfBytes);
+                        updateProgress('splitProgressFill', ((i + 1) / totalPages) * 100);
+                    }
+                    
+                    const zipBlob = await zip.generateAsync({ type: 'blob' });
+                    splitResults = { type: 'zip', data: zipBlob, name: 'split-pages.zip' };
+                    
+                    showNotification('splitNotification', `Split into ${totalPages} separate PDFs!`, 'success');
+                    
+                } else if (mode === 'everyN') {
+                    const interval = parseInt(document.getElementById('pageInterval').value);
+                    if (isNaN(interval) || interval < 1) {
+                        throw new Error('Please enter a valid number of pages per file');
+                    }
+                    
+                    const zip = new JSZip();
+                    const totalPages = splitPdfDoc.getPageCount();
+                    let fileCount = 0;
+                    
+                    for (let i = 0; i < totalPages; i += interval) {
+                        const newPdf = await PDFLib.PDFDocument.create();
+                        const endPage = Math.min(i + interval, totalPages);
+                        const pageIndices = [];
+                        
+                        for (let j = i; j < endPage; j++) {
+                            pageIndices.push(j);
+                        }
+                        
+                        const copiedPages = await newPdf.copyPages(splitPdfDoc, pageIndices);
+                        copiedPages.forEach(page => newPdf.addPage(page));
+                        const pdfBytes = await newPdf.save();
+                        
+                        fileCount++;
+                        zip.file(`part-${fileCount}.pdf`, pdfBytes);
+                        updateProgress('splitProgressFill', (endPage / totalPages) * 100);
+                    }
+                    
+                    const zipBlob = await zip.generateAsync({ type: 'blob' });
+                    splitResults = { type: 'zip', data: zipBlob, name: 'split-parts.zip' };
+                    
+                    showNotification('splitNotification', `Split into ${fileCount} PDF files!`, 'success');
+                }
+                
+                hideProgress('splitProgress');
+                downloadSplitBtn.classList.remove('hidden');
+                
+            } catch (error) {
+                hideProgress('splitProgress');
+                showNotification('splitNotification', 'Error: ' + error.message, 'error');
+            } finally {
+                splitPdfBtn.disabled = false;
+            }
+        });
+
+        downloadSplitBtn.addEventListener('click', () => {
+            if (splitResults) {
+                const blob = splitResults.type === 'single' 
+                    ? new Blob([splitResults.data], { type: 'application/pdf' })
+                    : splitResults.data;
+                
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = splitResults.name;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        });
+
+        clearSplitBtn.addEventListener('click', () => {
+            splitFile = null;
+            splitPdfDoc = null;
+            splitResults = null;
+            splitFileInfo.classList.add('hidden');
+            downloadSplitBtn.classList.add('hidden');
+            hideProgress('splitProgress');
+            document.getElementById('pageRange').value = '';
+            document.getElementById('pageInterval').value = '';
+        });
+
+        // ===== COMPRESS PDF FUNCTIONALITY =====
+        let compressFile = null;
+        let compressPdfDoc = null;
+        let compressedPdfBytes = null;
+
+        const compressUploadZone = document.getElementById('compressUploadZone');
+        const compressFileInput = document.getElementById('compressFileInput');
+        const compressFileInfo = document.getElementById('compressFileInfo');
+        const compressFileName = document.getElementById('compressFileName');
+        const compressFileDetails = document.getElementById('compressFileDetails');
+        const compressPdfBtn = document.getElementById('compressPdfBtn');
+        const downloadCompressedBtn = document.getElementById('downloadCompressedBtn');
+        const clearCompressBtn = document.getElementById('clearCompressBtn');
+        const compressionResults = document.getElementById('compressionResults');
+
+        compressUploadZone.addEventListener('click', () => compressFileInput.click());
+
+        compressUploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            compressUploadZone.classList.add('dragover');
+        });
+
+        compressUploadZone.addEventListener('dragleave', () => {
+            compressUploadZone.classList.remove('dragover');
+        });
+
+        compressUploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            compressUploadZone.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf');
+            if (files.length > 0) handleCompressFile(files[0]);
+        });
+
+        compressFileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleCompressFile(e.target.files[0]);
+                compressFileInput.value = '';
+            }
+        });
+
+        async function handleCompressFile(file) {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const clonedBuffer = arrayBuffer.slice(0);
+                const pdf = await pdfjsLib.getDocument({data: clonedBuffer}).promise;
+                
+                const arrayBuffer2 = await file.arrayBuffer();
+                compressPdfDoc = await PDFLib.PDFDocument.load(arrayBuffer2);
+                
+                compressFile = {
+                    file: file,
+                    name: file.name,
+                    size: file.size,
+                    pages: pdf.numPages,
+                    pdfDoc: pdf
+                };
+                
+                compressFileName.textContent = `📄 ${file.name}`;
+                compressFileDetails.textContent = `${compressFile.pages} pages • ${formatFileSize(file.size)}`;
+                compressFileInfo.classList.remove('hidden');
+                downloadCompressedBtn.classList.add('hidden');
+                compressionResults.classList.remove('show');
+                compressedPdfBytes = null;
+            } catch (error) {
+                showNotification('compressNotification', 'Error loading PDF: ' + error.message, 'error');
+            }
+        }
+
+        compressPdfBtn.addEventListener('click', async () => {
+            if (!compressFile) {
+                showNotification('compressNotification', 'Please upload a PDF file first', 'error');
+                return;
+            }
+
+            const mode = document.querySelector('input[name="compressMode"]:checked').value;
+            const qualitySettings = {
+                low: { scale: 1.0, quality: 0.92 },
+                medium: { scale: 0.75, quality: 0.85 },
+                high: { scale: 0.5, quality: 0.7 }
+            };
+            
+            const settings = qualitySettings[mode];
+            
+            compressPdfBtn.disabled = true;
+            showProgress('compressProgress');
+            updateProgress('compressProgressFill', 0);
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const totalPages = compressFile.pages;
+                let pdf = null;
+                
+                for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+                    const page = await compressFile.pdfDoc.getPage(pageNum);
+                    const viewport = page.getViewport({ scale: settings.scale });
+                    
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    
+                    await page.render({
+                        canvasContext: context,
+                        viewport: viewport
+                    }).promise;
+                    
+                    const imgData = canvas.toDataURL('image/jpeg', settings.quality);
+                    
+                    const pdfWidth = viewport.width * 0.264583;
+                    const pdfHeight = viewport.height * 0.264583;
+                    
+                    if (pageNum === 1) {
+                        pdf = new jsPDF({
+                            orientation: pdfWidth > pdfHeight ? 'landscape' : 'portrait',
+                            unit: 'mm',
+                            format: [pdfWidth, pdfHeight]
+                        });
+                    } else {
+                        pdf.addPage([pdfWidth, pdfHeight]);
+                    }
+                    
+                    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+                    
+                    updateProgress('compressProgressFill', (pageNum / totalPages) * 100);
+                }
+                
+                compressedPdfBytes = pdf.output('arraybuffer');
+                
+                const originalSize = compressFile.size;
+                const compressedSize = compressedPdfBytes.byteLength;
+                const reduction = ((originalSize - compressedSize) / originalSize * 100);
+                
+                document.getElementById('originalSize').textContent = formatFileSize(originalSize);
+                document.getElementById('compressedSize').textContent = formatFileSize(compressedSize);
+                document.getElementById('savingsPercent').textContent = 
+                    reduction > 0 ? `${reduction.toFixed(1)}% reduction` : 'File size increased';
+                
+                compressionResults.classList.add('show');
+                hideProgress('compressProgress');
+                downloadCompressedBtn.classList.remove('hidden');
+                
+                if (reduction > 0) {
+                    showNotification('compressNotification', 
+                        `PDF compressed successfully! Reduced by ${reduction.toFixed(1)}%`, 'success');
+                } else {
+                    showNotification('compressNotification', 
+                        'Compression complete. Note: File size may have increased due to image conversion.', 'warning');
+                }
+                
+            } catch (error) {
+                hideProgress('compressProgress');
+                showNotification('compressNotification', 'Error compressing PDF: ' + error.message, 'error');
+            } finally {
+                compressPdfBtn.disabled = false;
+            }
+        });
+
+        downloadCompressedBtn.addEventListener('click', () => {
+            if (compressedPdfBytes) {
+                const blob = new Blob([compressedPdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = compressFile.name.replace('.pdf', '-compressed.pdf');
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        });
+
+        clearCompressBtn.addEventListener('click', () => {
+            compressFile = null;
+            compressPdfDoc = null;
+            compressedPdfBytes = null;
+            compressFileInfo.classList.add('hidden');
+            downloadCompressedBtn.classList.add('hidden');
+            compressionResults.classList.remove('show');
+            hideProgress('compressProgress');
+        });
+
+        // ===== PWA INSTALLATION =====
+        let installPrompt = null;
+        const installAppBtn = document.getElementById('installAppBtn');
+
+        window.addEventListener('beforeinstallprompt', (event) => {
+            event.preventDefault();
+            installPrompt = event;
+            installAppBtn.classList.remove('hidden');
+        });
+
+        installAppBtn.addEventListener('click', async () => {
+            if (!installPrompt) return;
+            installPrompt.prompt();
+            await installPrompt.userChoice;
+            installPrompt = null;
+            installAppBtn.classList.add('hidden');
+        });
+
+        window.addEventListener('appinstalled', () => {
+            installPrompt = null;
+            installAppBtn.classList.add('hidden');
+        });
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .catch(error => console.warn('Offline support could not be enabled:', error));
+            });
+        }
+    </script>
+</body>
+</html>
+```

@@ -1,7 +1,7 @@
-const CACHE_NAME = 'pdf-tool-v1';
+const CACHE_NAME = 'pdf-tool-v2';
 const APP_SHELL = [
   './',
-  './9019%20PDF%20tool1.html',
+  ./index.html
   './manifest.webmanifest',
   './icons/pdf-tool-icon.svg',
   './icons/pdf-tool-icon-180.png',
@@ -48,7 +48,7 @@ self.addEventListener('fetch', event => {
       return response;
     } catch (_) {
       if (event.request.mode === 'navigate') {
-        return (await caches.match('./9019%20PDF%20tool1.html')) || Response.error();
+        return (await caches.match('./index.html')) || Response.error();
       }
       return Response.error();
     }
